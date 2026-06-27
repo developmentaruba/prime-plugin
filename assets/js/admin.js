@@ -421,8 +421,9 @@
 			fields.appendChild(r1);
 			fields.appendChild(r2);
 		} else {
-			fields.appendChild(makeField('Title',    'text', item.title    || '', function(v){ tabs[ti].items[ii].title    = v; }));
-			fields.appendChild(makeField('Subtitle', 'text', item.subtitle || '', function(v){ tabs[ti].items[ii].subtitle = v; }));
+			fields.appendChild(makeField('Title',       'text', item.title       || '', function(v){ tabs[ti].items[ii].title       = v; }));
+			fields.appendChild(makeField('Subtitle',    'text', item.subtitle    || '', function(v){ tabs[ti].items[ii].subtitle    = v; }));
+			fields.appendChild(makeField('YouTube URL', 'url',  item.youtube_url || '', function(v){ tabs[ti].items[ii].youtube_url = v; }));
 		}
 
 		var r3 = makeRow([

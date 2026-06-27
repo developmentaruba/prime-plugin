@@ -110,7 +110,8 @@ function spm_sanitize_card_item( array $item, string $card_type ): array {
 		$clean['date']  = sanitize_text_field( $item['date']  ?? '' );
 		$clean['venue'] = sanitize_text_field( $item['venue'] ?? '' );
 	} else {
-		$clean['subtitle'] = wp_kses_post( $item['subtitle'] ?? '' );
+		$clean['subtitle']    = wp_kses_post( $item['subtitle']    ?? '' );
+		$clean['youtube_url'] = esc_url_raw( $item['youtube_url'] ?? '' );
 	}
 
 	return $clean;
