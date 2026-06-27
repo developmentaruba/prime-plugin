@@ -1,0 +1,42 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs & temp
+*.log
+*.tmp
+*.bak
+*.swp
+
+# WordPress core (never commit these)
+wp-admin/
+wp-includes/
+wp-config.php
+wp-config-sample.php
+wp-blog-header.php
+wp-load.php
+wp-login.php
+wp-cron.php
+wp-settings.php
+wp-signup.php
+wp-trackback.php
+xmlrpc.php
+*.sql
+*.tar.gz
+*.zip
+
+# Secrets
+.env
+.env.*
+auth.json
+
+# Node (if ever added)
+node_modules/
+npm-debug.log*
+yarn-error.log*
