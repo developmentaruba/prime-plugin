@@ -1,10 +1,11 @@
 <?php
 /**
  * Plugin Name:       Social Profile Manager
- * Plugin URI:        https://example.com/social-profile-manager
+ * Plugin URI:        https://github.com/developmentaruba/prime-plugin
  * Description:       Admin panel for the Social Profile theme. Edit your profile, colors, social links, tab sections, and collect subscriber emails.
- * Version:           1.1.0
- * Author:            Your Name
+ * Version:           1.2.0
+ * Author:            Development Aruba
+ * Author URI:        https://developmentaruba.com
  * License:           GPL-2.0-or-later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       social-profile-manager
@@ -14,7 +15,26 @@ defined( 'ABSPATH' ) || exit;
 
 define( 'SPM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'SPM_URL',     plugin_dir_url( __FILE__ ) );
-define( 'SPM_VERSION', '1.1.0' );
+define( 'SPM_VERSION', '1.2.0' );
+
+// ---------------------------------------------------------------------------
+// GitHub Update Checker (Plugin Update Checker by Yahnis Elsts)
+// ---------------------------------------------------------------------------
+require_once SPM_DIR . 'vendor/plugin-update-checker/load-v5p3.php';
+
+$spm_update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdateChecker(
+	'https://github.com/developmentaruba/prime-plugin/',
+	__FILE__,
+	'social-profile-manager'
+);
+
+$spm_update_checker->setBranch( 'main' );
+
+// Private repo: reads token from wp-config.php constant GITHUB_ACCESS_TOKEN
+if ( defined( 'GITHUB_ACCESS_TOKEN' ) ) {
+	$spm_update_checker->setAuthentication( GITHUB_ACCESS_TOKEN );
+}
+unset( $spm_update_checker );
 
 require_once SPM_DIR . 'includes/helpers.php';
 require_once SPM_DIR . 'includes/admin-page.php';
