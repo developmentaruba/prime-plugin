@@ -29,11 +29,6 @@ $spm_update_checker = \YahnisElsts\PluginUpdateChecker\v5\PucFactory::buildUpdat
 );
 
 $spm_update_checker->setBranch( 'main' );
-
-// Private repo: reads token from wp-config.php constant GITHUB_ACCESS_TOKEN
-if ( defined( 'GITHUB_ACCESS_TOKEN' ) ) {
-	$spm_update_checker->setAuthentication( GITHUB_ACCESS_TOKEN );
-}
 unset( $spm_update_checker );
 
 require_once SPM_DIR . 'includes/helpers.php';
