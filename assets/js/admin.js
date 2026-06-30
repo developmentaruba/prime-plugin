@@ -24,6 +24,7 @@
 	var isTabsPage = document.body.classList.contains('social-profile_page_social-profile-tabs');
 
 	document.addEventListener('DOMContentLoaded', function () {
+		initThemeToggle();
 		if (!isTabsPage) {
 			initSectionNav();
 			initAvatarUpload();
@@ -220,6 +221,7 @@
 	// Tabs Editor — two-column layout
 	// -----------------------------------------------------------------------
 	var activeTabIndex = -1;
+	var editingCard    = null; // { ti, ii } | null
 
 	function renderTabsList() {
 		var list = document.getElementById('spm-tabs-list');
@@ -266,6 +268,7 @@
 
 			item.addEventListener('click', function () {
 				activeTabIndex = ti;
+				editingCard = null;
 				renderTabsList();
 				renderTabContent();
 			});
@@ -338,29 +341,34 @@
 		settings.appendChild(typeSelect);
 		panel.appendChild(settings);
 
-		// — Cards list —
-		var cardsList = document.createElement('div');
-		cardsList.className = 'spm-tc-cards';
-		renderCards(cardsList, ti);
-		panel.appendChild(cardsList);
-
-		// — Add item button —
-		var addBtn = document.createElement('button');
-		addBtn.type = 'button';
-		addBtn.className = 'spm-btn spm-btn--sm spm-tc-add-btn';
-		addBtn.textContent = '+ Add Item';
-		addBtn.addEventListener('click', function () {
-			var ct = tabs[ti].card_type;
-			var newItem = ct === 'event'
-				? { image: '', title: '', city: '', date: '', venue: '', btn_text: '', btn_url: '' }
-				: { image: '', title: '', subtitle: '', btn_text: '', btn_url: '' };
-			if (!tabs[ti].items) tabs[ti].items = [];
-			tabs[ti].items.push(newItem);
+		// — Cards list or edit view —
+		if (editingCard && editingCard.ti === ti) {
+			panel.appendChild(buildCardEditView(ti, editingCard.ii, tab.card_type));
+		} else {
+			var cardsList = document.createElement('div');
+			cardsList.className = 'spm-tc-cards';
 			renderCards(cardsList, ti);
-			updateSidebarMeta(ti);
-			push();
-		});
-		panel.appendChild(addBtn);
+			panel.appendChild(cardsList);
+
+			var addBtn = document.createElement('button');
+			addBtn.type = 'button';
+			addBtn.className = 'spm-btn spm-btn--sm spm-tc-add-btn';
+			addBtn.textContent = '+ Add Item';
+			addBtn.addEventListener('click', function () {
+				var ct = tabs[ti].card_type;
+				var newItem = ct === 'event'
+					? { image: '', title: '', city: '', date: '', venue: '', btn_text: 'Get Tickets',
+						ticket_options: { location: { enabled: false, items: [] }, payaw: { enabled: false }, rsvp: { enabled: false, whatsapp: '' }, vip: { enabled: false, phone: '' }, link: { enabled: false, url: '', label: '' } } }
+					: { media_type: 'youtube', image: '', title: '', subtitle: '', youtube_url: '', soundcloud_url: '', soundcloud_thumb: '', btn_text: '', btn_url: '' };
+				if (!tabs[ti].items) tabs[ti].items = [];
+				tabs[ti].items.push(newItem);
+				editingCard = { ti: ti, ii: tabs[ti].items.length - 1 };
+				updateSidebarMeta(ti);
+				push();
+				renderTabContent();
+			});
+			panel.appendChild(addBtn);
+		}
 
 		content.appendChild(panel);
 	}
@@ -377,39 +385,139 @@
 		container.innerHTML = '';
 		var tab   = tabs[ti];
 		var items = tab.items || [];
+		if (items.length === 0) {
+			var empty = document.createElement('p');
+			empty.className = 'spm-tc-empty';
+			empty.textContent = 'No items yet. Click "+ Add Item" to get started.';
+			container.appendChild(empty);
+			return;
+		}
 		items.forEach(function (item, ii) {
-			container.appendChild(buildCardRow(ti, ii, item, tab.card_type));
+			container.appendChild(buildCardSummary(ti, ii, item, tab.card_type, container));
 		});
+	}
+
+	function buildCardSummary(ti, ii, item, ct, container) {
+		var card = document.createElement('div');
+		card.className = 'spm-tc-summary';
+
+		// Thumb / icon
+		var thumbWrap = document.createElement('div');
+		thumbWrap.className = 'spm-tc-summary__thumb';
+		if (item.image) {
+			thumbWrap.innerHTML = '<img src="' + esc(item.image) + '" alt="">';
+		} else {
+			thumbWrap.innerHTML = ct === 'event' ? '🎤' : '▶';
+			thumbWrap.classList.add('spm-tc-summary__thumb--icon');
+		}
+		card.appendChild(thumbWrap);
+
+		// Info
+		var info = document.createElement('div');
+		info.className = 'spm-tc-summary__info';
+		var title = document.createElement('span');
+		title.className = 'spm-tc-summary__title';
+		title.textContent = item.title || '(Untitled)';
+		var meta = document.createElement('span');
+		meta.className = 'spm-tc-summary__meta';
+		if (ct === 'event') {
+			meta.textContent = [item.date, item.city].filter(Boolean).join(' · ') || 'No date set';
+		} else {
+			meta.textContent = (item.media_type === 'youtube' ? 'YouTube' : 'Custom') + (item.subtitle ? ' · ' + item.subtitle : '');
+		}
+		info.appendChild(title);
+		info.appendChild(meta);
+		card.appendChild(info);
+
+		// Actions
+		var actions = document.createElement('div');
+		actions.className = 'spm-tc-summary__actions';
+
+		var editBtn = document.createElement('button');
+		editBtn.type = 'button';
+		editBtn.className = 'spm-btn spm-btn--sm spm-btn--ghost';
+		editBtn.textContent = 'Edit';
+		editBtn.addEventListener('click', function () {
+			editingCard = { ti: ti, ii: ii };
+			renderTabContent();
+		});
+
+		var delBtn = document.createElement('button');
+		delBtn.type = 'button';
+		delBtn.className = 'spm-btn spm-btn--sm spm-btn--danger';
+		delBtn.title = 'Delete';
+		delBtn.innerHTML = '&#x2715;';
+		delBtn.addEventListener('click', function () {
+			if (!confirm('Remove this item?')) return;
+			tabs[ti].items.splice(ii, 1);
+			if (editingCard && editingCard.ti === ti) editingCard = null;
+			updateSidebarMeta(ti);
+			push();
+			renderTabContent();
+		});
+
+		actions.appendChild(editBtn);
+		actions.appendChild(delBtn);
+		card.appendChild(actions);
+		return card;
+	}
+
+	function buildCardEditView(ti, ii, ct) {
+		var wrap = document.createElement('div');
+		wrap.className = 'spm-card-edit-view';
+
+		var hdr = document.createElement('div');
+		hdr.className = 'spm-card-edit-view__header';
+
+		var backBtn = document.createElement('button');
+		backBtn.type = 'button';
+		backBtn.className = 'spm-back-btn';
+		backBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg> Back to list';
+		backBtn.addEventListener('click', function () {
+			editingCard = null;
+			renderTabContent();
+		});
+
+		var hdrTitle = document.createElement('span');
+		hdrTitle.className = 'spm-card-edit-view__title';
+		hdrTitle.textContent = ct === 'event' ? 'Edit Show' : 'Edit Item';
+
+		hdr.appendChild(backBtn);
+		hdr.appendChild(hdrTitle);
+		wrap.appendChild(hdr);
+
+		var form = buildCardRow(ti, ii, tabs[ti].items[ii], ct);
+		wrap.appendChild(form);
+		return wrap;
 	}
 
 	function buildCardRow(ti, ii, item, ct) {
 		var card = document.createElement('div');
 		card.className = 'spm-tc-card';
 
-		// Thumbnail
-		var thumb = document.createElement('div');
-		thumb.className = 'spm-tc-card__thumb';
-		thumb.innerHTML = item.image
-			? '<img src="' + esc(item.image) + '" alt="">'
-			: '<span>+ Image</span>';
-		var mf = null;
-		thumb.addEventListener('click', function () {
-			if (mf) { mf.open(); return; }
-			mf = wp.media({ title: 'Select Image', button: { text: 'Use this image' }, multiple: false, library: { type: 'image' } });
-			mf.on('select', function () {
-				var url = mf.state().get('selection').first().toJSON().url;
-				tabs[ti].items[ii].image = url;
-				thumb.innerHTML = '<img src="' + esc(url) + '" alt="">';
-				push();
-			});
-			mf.open();
-		});
-
 		// Fields
 		var fields = document.createElement('div');
 		fields.className = 'spm-tc-card__fields';
 
 		if (ct === 'event') {
+			// Thumbnail for events
+			var thumb = document.createElement('div');
+			thumb.className = 'spm-tc-card__thumb';
+			thumb.innerHTML = item.image ? '<img src="' + esc(item.image) + '" alt="">' : '<span>+ Image</span>';
+			var mf = null;
+			thumb.addEventListener('click', function () {
+				if (mf) { mf.open(); return; }
+				mf = wp.media({ title: 'Select Image', button: { text: 'Use this image' }, multiple: false, library: { type: 'image' } });
+				mf.on('select', function () {
+					var url = mf.state().get('selection').first().toJSON().url;
+					tabs[ti].items[ii].image = url;
+					thumb.innerHTML = '<img src="' + esc(url) + '" alt="">';
+					push();
+				});
+				mf.open();
+			});
+			card.appendChild(thumb);
+
 			var r1 = makeRow([
 				makeField('Title',         'text', item.title  || '', function(v){ tabs[ti].items[ii].title = v; }),
 				makeField('City/Location', 'text', item.city   || '', function(v){ tabs[ti].items[ii].city  = v; }),
@@ -418,39 +526,295 @@
 				makeField('Date',          'date', item.date   || '', function(v){ tabs[ti].items[ii].date  = v; }),
 				makeField('Venue/Details', 'text', item.venue  || '', function(v){ tabs[ti].items[ii].venue = v; }),
 			]);
+			var r3 = makeRow([
+				makeField('Button Label', 'text', item.btn_text || 'Get Tickets', function(v){ tabs[ti].items[ii].btn_text = v; }),
+			]);
 			fields.appendChild(r1);
 			fields.appendChild(r2);
+			fields.appendChild(r3);
+
+			// Ticket Options section
+			var toSection = document.createElement('div');
+			toSection.className = 'spm-ticket-options';
+			var toTitle = document.createElement('p');
+			toTitle.className = 'spm-ticket-options__title';
+			toTitle.textContent = 'Ticket Options';
+			toSection.appendChild(toTitle);
+
+			var to = item.ticket_options || {};
+
+			function makeTicketOption(key, label, extraFields) {
+				var enabled = !!(to[key] && to[key].enabled);
+				var wrap = document.createElement('div');
+				wrap.className = 'spm-to-row';
+
+				var header = document.createElement('div');
+				header.className = 'spm-to-row__header';
+
+				var toggle = document.createElement('label');
+				toggle.className = 'spm-to-toggle';
+				var chk = document.createElement('input');
+				chk.type = 'checkbox';
+				chk.checked = enabled;
+				var slider = document.createElement('span');
+				slider.className = 'spm-to-slider';
+				toggle.appendChild(chk);
+				toggle.appendChild(slider);
+
+				var lbl = document.createElement('span');
+				lbl.className = 'spm-to-label';
+				lbl.textContent = label;
+
+				header.appendChild(toggle);
+				header.appendChild(lbl);
+				wrap.appendChild(header);
+
+				var body = document.createElement('div');
+				body.className = 'spm-to-body';
+				body.style.display = enabled ? '' : 'none';
+				extraFields.forEach(function(f) { body.appendChild(f); });
+				wrap.appendChild(body);
+
+				if (!tabs[ti].items[ii].ticket_options) tabs[ti].items[ii].ticket_options = {};
+				if (!tabs[ti].items[ii].ticket_options[key]) tabs[ti].items[ii].ticket_options[key] = {};
+
+				chk.addEventListener('change', function() {
+					tabs[ti].items[ii].ticket_options[key].enabled = chk.checked;
+					body.style.display = chk.checked ? '' : 'none';
+					push();
+				});
+
+				return wrap;
+			}
+
+			if (!tabs[ti].items[ii].ticket_options) tabs[ti].items[ii].ticket_options = {};
+			var tkOpts = tabs[ti].items[ii].ticket_options;
+
+			// Physical Locations (multiple)
+			if (!tkOpts.location) tkOpts.location = { enabled: false, items: [] };
+			if (!Array.isArray(tkOpts.location.items)) {
+				// Migrate old single-location format
+				var old = tkOpts.location;
+				tkOpts.location = { enabled: !!old.enabled, items: (old.place_name || old.address) ? [{ place_name: old.place_name || '', address: old.address || '', maps_url: old.maps_url || '' }] : [] };
+			}
+
+			function buildLocationItems(container) {
+				container.innerHTML = '';
+				(tkOpts.location.items || []).forEach(function(loc, li) {
+					var row = document.createElement('div');
+					row.className = 'spm-loc-item';
+
+					var removeBtn = document.createElement('button');
+					removeBtn.type = 'button';
+					removeBtn.className = 'spm-loc-item__remove';
+					removeBtn.innerHTML = '&#x2715;';
+					removeBtn.title = 'Remove';
+					removeBtn.addEventListener('click', function() {
+						tkOpts.location.items.splice(li, 1);
+						buildLocationItems(container);
+						push();
+					});
+
+					var pn = makeField('Place Name', 'text', loc.place_name || '', function(v){ tkOpts.location.items[li].place_name = v; push(); });
+					var ad = makeField('Address', 'text', loc.address || '', function(v){ tkOpts.location.items[li].address = v; push(); });
+					var mu = makeField('Google Maps Link (optional)', 'url', loc.maps_url || '', function(v){ tkOpts.location.items[li].maps_url = v; push(); });
+
+					row.appendChild(removeBtn);
+					row.appendChild(pn);
+					row.appendChild(ad);
+					row.appendChild(mu);
+					container.appendChild(row);
+				});
+
+				var addLocBtn = document.createElement('button');
+				addLocBtn.type = 'button';
+				addLocBtn.className = 'spm-btn spm-btn--xs spm-btn--ghost spm-loc-add-btn';
+				addLocBtn.textContent = '+ Add Location';
+				addLocBtn.addEventListener('click', function() {
+					tkOpts.location.items.push({ place_name: '', address: '', maps_url: '' });
+					buildLocationItems(container);
+					push();
+				});
+				container.appendChild(addLocBtn);
+			}
+
+			var locItemsWrap = document.createElement('div');
+			locItemsWrap.className = 'spm-loc-items';
+			buildLocationItems(locItemsWrap);
+
+			toSection.appendChild(makeTicketOption('location', 'Physical Location', [ locItemsWrap ]));
+
+			// Pay.aw
+			toSection.appendChild(makeTicketOption('payaw', 'Pay.aw', []));
+
+			// RSVP WhatsApp
+			toSection.appendChild(makeTicketOption('rsvp', 'RSVP (WhatsApp)', [
+				makeField('WhatsApp Number', 'text', (to.rsvp && to.rsvp.whatsapp) || '', function(v){
+					if (!tkOpts.rsvp) tkOpts.rsvp = {};
+					tkOpts.rsvp.whatsapp = v; push();
+				})
+			]));
+
+			// VIP Tables
+			toSection.appendChild(makeTicketOption('vip', 'VIP Tables', [
+				makeField('Phone Number', 'text', (to.vip && to.vip.phone) || '', function(v){
+					if (!tkOpts.vip) tkOpts.vip = {};
+					tkOpts.vip.phone = v; push();
+				})
+			]));
+
+			// Custom Link
+			toSection.appendChild(makeTicketOption('link', 'Custom Link', [
+				makeField('Label', 'text', (to.link && to.link.label) || '', function(v){
+					if (!tkOpts.link) tkOpts.link = {};
+					tkOpts.link.label = v; push();
+				}),
+				makeField('URL', 'url', (to.link && to.link.url) || '', function(v){
+					if (!tkOpts.link) tkOpts.link = {};
+					tkOpts.link.url = v; push();
+				})
+			]));
+
+			fields.appendChild(toSection);
+
 		} else {
-			fields.appendChild(makeField('Title',       'text', item.title       || '', function(v){ tabs[ti].items[ii].title       = v; }));
-			fields.appendChild(makeField('Subtitle',    'text', item.subtitle    || '', function(v){ tabs[ti].items[ii].subtitle    = v; }));
-			fields.appendChild(makeField('YouTube URL', 'url',  item.youtube_url || '', function(v){ tabs[ti].items[ii].youtube_url = v; }));
+			// Media card: YouTube | SoundCloud | Custom toggle
+			var mediaType = item.media_type || 'youtube';
+
+			var toggleWrap = document.createElement('div');
+			toggleWrap.className = 'spm-tc-media-toggle';
+
+			var btnYT = document.createElement('button');
+			btnYT.type = 'button';
+			btnYT.className = 'spm-tc-toggle-btn' + (mediaType === 'youtube' ? ' is-active' : '');
+			btnYT.textContent = 'YouTube';
+
+			var btnSC = document.createElement('button');
+			btnSC.type = 'button';
+			btnSC.className = 'spm-tc-toggle-btn' + (mediaType === 'soundcloud' ? ' is-active' : '');
+			btnSC.textContent = 'SoundCloud';
+
+			var btnCustom = document.createElement('button');
+			btnCustom.type = 'button';
+			btnCustom.className = 'spm-tc-toggle-btn' + (mediaType === 'custom' ? ' is-active' : '');
+			btnCustom.textContent = 'Custom';
+
+			toggleWrap.appendChild(btnYT);
+			toggleWrap.appendChild(btnSC);
+			toggleWrap.appendChild(btnCustom);
+			fields.appendChild(toggleWrap);
+
+			// Title always shown
+			fields.appendChild(makeField('Title', 'text', item.title || '', function(v){ tabs[ti].items[ii].title = v; }));
+
+			// YouTube section
+			var ytSection = document.createElement('div');
+			ytSection.className = 'spm-tc-media-section';
+			ytSection.style.display = mediaType === 'youtube' ? '' : 'none';
+			ytSection.appendChild(makeField('YouTube URL', 'url', item.youtube_url || '', function(v){ tabs[ti].items[ii].youtube_url = v; }));
+
+			// SoundCloud section
+			var scSection = document.createElement('div');
+			scSection.className = 'spm-tc-media-section';
+			scSection.style.display = mediaType === 'soundcloud' ? '' : 'none';
+
+			var scThumbPreview = document.createElement('div');
+			scThumbPreview.className = 'spm-sc-thumb-preview';
+			if (item.soundcloud_thumb) {
+				scThumbPreview.innerHTML = '<img src="' + esc(item.soundcloud_thumb) + '" alt="">';
+				scThumbPreview.style.display = '';
+			} else {
+				scThumbPreview.style.display = 'none';
+			}
+
+			var scStatus = document.createElement('p');
+			scStatus.className = 'spm-sc-status';
+			scStatus.style.display = 'none';
+
+			var scUrlField = makeField('SoundCloud URL', 'url', item.soundcloud_url || '', function(v){
+				tabs[ti].items[ii].soundcloud_url = v;
+				if (!v) { scThumbPreview.style.display = 'none'; tabs[ti].items[ii].soundcloud_thumb = ''; push(); return; }
+				scStatus.textContent = 'Fetching thumbnail…';
+				scStatus.style.display = '';
+				var fd = new FormData();
+				fd.append('action', 'spm_soundcloud_oembed');
+				fd.append('nonce',  D.nonce);
+				fd.append('url',    v);
+				fetch(D.ajaxUrl + '?action=spm_soundcloud_oembed&nonce=' + encodeURIComponent(D.nonce) + '&url=' + encodeURIComponent(v))
+					.then(function(r){ return r.json(); })
+					.then(function(res){
+						if (!res.success) { scStatus.textContent = 'Could not fetch thumbnail.'; return; }
+						var data  = res.data;
+						var thumb = data.thumbnail_url || '';
+						tabs[ti].items[ii].soundcloud_thumb = thumb;
+						if (thumb) {
+							scThumbPreview.innerHTML = '<img src="' + esc(thumb) + '" alt="">';
+							scThumbPreview.style.display = '';
+						} else {
+							scThumbPreview.style.display = 'none';
+						}
+						if (!tabs[ti].items[ii].title && data.title) {
+							tabs[ti].items[ii].title = data.title;
+							var titleInp = fields.querySelector('.spm-tc-field__input');
+							if (titleInp) titleInp.value = data.title;
+						}
+						scStatus.style.display = 'none';
+						push();
+					})
+					.catch(function(){ scStatus.textContent = 'Could not fetch thumbnail.'; });
+			});
+
+			scSection.appendChild(scUrlField);
+			scSection.appendChild(scThumbPreview);
+			scSection.appendChild(scStatus);
+
+			// Custom section
+			var customSection = document.createElement('div');
+			customSection.className = 'spm-tc-media-section';
+			customSection.style.display = mediaType === 'custom' ? '' : 'none';
+
+			var customThumb = document.createElement('div');
+			customThumb.className = 'spm-tc-card__thumb spm-tc-card__thumb--inline';
+			customThumb.innerHTML = item.image ? '<img src="' + esc(item.image) + '" alt="">' : '<span>+ Image</span>';
+			var mfCustom = null;
+			customThumb.addEventListener('click', function () {
+				if (mfCustom) { mfCustom.open(); return; }
+				mfCustom = wp.media({ title: 'Select Image', button: { text: 'Use this image' }, multiple: false, library: { type: 'image' } });
+				mfCustom.on('select', function () {
+					var url = mfCustom.state().get('selection').first().toJSON().url;
+					tabs[ti].items[ii].image = url;
+					customThumb.innerHTML = '<img src="' + esc(url) + '" alt="">';
+					push();
+				});
+				mfCustom.open();
+			});
+			customSection.appendChild(customThumb);
+			customSection.appendChild(makeField('Subtitle', 'text', item.subtitle || '', function(v){ tabs[ti].items[ii].subtitle = v; }));
+			customSection.appendChild(makeRow([
+				makeField('Button Text', 'text', item.btn_text || '', function(v){ tabs[ti].items[ii].btn_text = v; }),
+				makeField('Button URL',  'url',  item.btn_url  || '', function(v){ tabs[ti].items[ii].btn_url  = v; }),
+			]));
+
+			fields.appendChild(ytSection);
+			fields.appendChild(scSection);
+			fields.appendChild(customSection);
+
+			function setMediaType(t) {
+				tabs[ti].items[ii].media_type = t;
+				btnYT.classList.toggle('is-active', t === 'youtube');
+				btnSC.classList.toggle('is-active', t === 'soundcloud');
+				btnCustom.classList.toggle('is-active', t === 'custom');
+				ytSection.style.display     = t === 'youtube'     ? '' : 'none';
+				scSection.style.display     = t === 'soundcloud'  ? '' : 'none';
+				customSection.style.display = t === 'custom'      ? '' : 'none';
+				push();
+			}
+			btnYT.addEventListener('click',    function(){ setMediaType('youtube'); });
+			btnSC.addEventListener('click',    function(){ setMediaType('soundcloud'); });
+			btnCustom.addEventListener('click', function(){ setMediaType('custom'); });
 		}
 
-		var r3 = makeRow([
-			makeField('Button Text', 'text', item.btn_text || '', function(v){ tabs[ti].items[ii].btn_text = v; }),
-			makeField('Button URL',  'url',  item.btn_url  || '', function(v){ tabs[ti].items[ii].btn_url  = v; }),
-		]);
-		fields.appendChild(r3);
-
-		// Delete
-		var del = document.createElement('button');
-		del.type = 'button';
-		del.className = 'spm-tc-card__del';
-		del.title = 'Remove item';
-		del.innerHTML = '&#x2715;';
-		del.addEventListener('click', function () {
-			if (!confirm('Remove this item?')) return;
-			tabs[ti].items.splice(ii, 1);
-			var container = card.parentNode;
-			card.remove();
-			renderCards(container, ti);
-			updateSidebarMeta(ti);
-			push();
-		});
-
-		card.appendChild(thumb);
 		card.appendChild(fields);
-		card.appendChild(del);
 		return card;
 	}
 
@@ -567,6 +931,37 @@
 					if (label) label.textContent = 'Save Changes';
 					toast('Network error — please try again.', 'error');
 				});
+		});
+	}
+
+	// -----------------------------------------------------------------------
+	// Theme Toggle (light / dark)
+	// -----------------------------------------------------------------------
+	var MOON_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+	var SUN_SVG  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
+
+	function initThemeToggle() {
+		var wrap = document.getElementById('spm-wrap');
+		var btn  = document.getElementById('spm-theme-toggle');
+		if (!wrap || !btn) return;
+
+		var STORAGE_KEY = 'spm_theme';
+		var saved = localStorage.getItem(STORAGE_KEY);
+
+		function applyTheme(isDark) {
+			wrap.classList.toggle('is-dark', isDark);
+			document.body.classList.toggle('spm-is-dark', isDark);
+			btn.innerHTML = isDark ? SUN_SVG : MOON_SVG;
+			btn.title = isDark ? 'Switch to light mode' : 'Switch to dark mode';
+		}
+
+		// Apply saved preference (default = light)
+		applyTheme(saved === 'dark');
+
+		btn.addEventListener('click', function () {
+			var isDark = !wrap.classList.contains('is-dark');
+			applyTheme(isDark);
+			localStorage.setItem(STORAGE_KEY, isDark ? 'dark' : 'light');
 		});
 	}
 

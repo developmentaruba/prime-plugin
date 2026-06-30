@@ -78,9 +78,12 @@ function spm_render_admin_page() {
 
 		<div class="spm-header">
 			<h1>Social Profile</h1>
-			<button class="spm-save-btn" id="spm-save-btn">
-				<span id="spm-save-label">Save Changes</span>
-			</button>
+			<div style="display:flex;align-items:center;gap:10px;">
+				<button class="spm-theme-toggle" id="spm-theme-toggle" title="Toggle dark/light mode" aria-label="Toggle dark mode"><svg id="spm-theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+				<button class="spm-save-btn" id="spm-save-btn">
+					<span id="spm-save-label">Save Changes</span>
+				</button>
+			</div>
 		</div>
 
 		<div class="spm-layout">
@@ -240,9 +243,12 @@ function spm_render_tabs_page() {
 	<div class="spm-wrap" id="spm-wrap">
 		<div class="spm-header">
 			<h1>Tabs &amp; Cards</h1>
-			<button class="spm-save-btn" id="spm-save-btn">
-				<span id="spm-save-label">Save Changes</span>
-			</button>
+			<div style="display:flex;align-items:center;gap:10px;">
+				<button class="spm-theme-toggle" id="spm-theme-toggle" title="Toggle dark/light mode" aria-label="Toggle dark mode"><svg id="spm-theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+				<button class="spm-save-btn" id="spm-save-btn">
+					<span id="spm-save-label">Save Changes</span>
+				</button>
+			</div>
 		</div>
 
 		<div class="spm-tabs-editor">
@@ -281,7 +287,10 @@ function spm_render_subscribers_page() {
 	<div class="spm-wrap spm-subscribers-page">
 		<div class="spm-header">
 			<h1>Subscribers <span class="spm-count-badge"><?php echo number_format( $total ); ?></span></h1>
-			<a href="<?php echo esc_url( $export ); ?>" class="spm-btn spm-btn--sm spm-btn--ghost">⬇ Export CSV</a>
+			<div style="display:flex;align-items:center;gap:10px;">
+				<button class="spm-theme-toggle" id="spm-theme-toggle" title="Toggle dark/light mode" aria-label="Toggle dark mode"><svg id="spm-theme-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
+				<a href="<?php echo esc_url( $export ); ?>" class="spm-btn spm-btn--sm spm-btn--ghost">⬇ Export CSV</a>
+			</div>
 		</div>
 
 		<?php if ( empty( $rows ) ) : ?>

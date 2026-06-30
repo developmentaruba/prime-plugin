@@ -21,7 +21,43 @@ function spm_ajax_save_settings() {
 	update_option( 'sp_profile', spm_sanitize_profile( (array) $raw_profile ) );
 	update_option( 'sp_tabs',    spm_sanitize_tabs( (array) $raw_tabs ) );
 
+	// Clear LiteSpeed Cache so front-end shows changes immediately
+	do_action( 'litespeed_purge_all' );
+
 	wp_send_json_success( [ 'message' => 'Settings saved.' ] );
+}
+
+// ---------------------------------------------------------------------------
+// SoundCloud oEmbed proxy (admin only — avoids browser CORS block)
+// ---------------------------------------------------------------------------
+add_action( 'wp_ajax_spm_soundcloud_oembed', 'spm_ajax_soundcloud_oembed' );
+function spm_ajax_soundcloud_oembed() {
+	check_ajax_referer( 'spm_nonce', 'nonce' );
+	if ( ! current_user_can( 'manage_options' ) ) {
+		wp_send_json_error( [ 'message' => 'Unauthorized' ], 403 );
+	}
+
+	$url = esc_url_raw( wp_unslash( $_GET['url'] ?? '' ) );
+	if ( ! $url ) {
+		wp_send_json_error( [ 'message' => 'No URL provided' ] );
+	}
+
+	$endpoint = add_query_arg( [ 'url' => $url, 'format' => 'json' ], 'https://soundcloud.com/oembed' );
+	$response = wp_remote_get( $endpoint, [ 'timeout' => 8 ] );
+
+	if ( is_wp_error( $response ) ) {
+		wp_send_json_error( [ 'message' => $response->get_error_message() ] );
+	}
+
+	$body = json_decode( wp_remote_retrieve_body( $response ), true );
+	if ( empty( $body ) ) {
+		wp_send_json_error( [ 'message' => 'Empty response from SoundCloud' ] );
+	}
+
+	wp_send_json_success( [
+		'thumbnail_url' => $body['thumbnail_url'] ?? '',
+		'title'         => $body['title']         ?? '',
+	] );
 }
 
 // ---------------------------------------------------------------------------

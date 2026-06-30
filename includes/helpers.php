@@ -109,9 +109,56 @@ function spm_sanitize_card_item( array $item, string $card_type ): array {
 		$clean['city']  = sanitize_text_field( $item['city']  ?? '' );
 		$clean['date']  = sanitize_text_field( $item['date']  ?? '' );
 		$clean['venue'] = sanitize_text_field( $item['venue'] ?? '' );
+
+		$to = $item['ticket_options'] ?? [];
+		$clean['ticket_options'] = [
+			'location' => (function() use ( $to ) {
+				$loc     = $to['location'] ?? [];
+				$enabled = ! empty( $loc['enabled'] );
+				$items   = [];
+				// Support old single-item format
+				if ( ! empty( $loc['place_name'] ) || ! empty( $loc['address'] ) ) {
+					$items[] = [
+						'place_name' => sanitize_text_field( $loc['place_name'] ?? '' ),
+						'address'    => sanitize_text_field( $loc['address']    ?? '' ),
+						'maps_url'   => esc_url_raw( $loc['maps_url']           ?? '' ),
+					];
+				} elseif ( ! empty( $loc['items'] ) && is_array( $loc['items'] ) ) {
+					foreach ( $loc['items'] as $entry ) {
+						$items[] = [
+							'place_name' => sanitize_text_field( $entry['place_name'] ?? '' ),
+							'address'    => sanitize_text_field( $entry['address']    ?? '' ),
+							'maps_url'   => esc_url_raw( $entry['maps_url']           ?? '' ),
+						];
+					}
+				}
+				return [ 'enabled' => $enabled, 'items' => $items ];
+			})(),
+			'payaw' => [
+				'enabled' => ! empty( $to['payaw']['enabled'] ),
+			],
+			'rsvp' => [
+				'enabled'   => ! empty( $to['rsvp']['enabled'] ),
+				'whatsapp'  => sanitize_text_field( $to['rsvp']['whatsapp'] ?? '' ),
+			],
+			'vip' => [
+				'enabled' => ! empty( $to['vip']['enabled'] ),
+				'phone'   => sanitize_text_field( $to['vip']['phone'] ?? '' ),
+			],
+			'link' => [
+				'enabled' => ! empty( $to['link']['enabled'] ),
+				'url'     => esc_url_raw( $to['link']['url'] ?? '' ),
+				'label'   => sanitize_text_field( $to['link']['label'] ?? '' ),
+			],
+		];
 	} else {
-		$clean['subtitle']    = wp_kses_post( $item['subtitle']    ?? '' );
-		$clean['youtube_url'] = esc_url_raw( $item['youtube_url'] ?? '' );
+		$allowed_media_types       = [ 'youtube', 'soundcloud', 'custom' ];
+		$clean['media_type']       = in_array( $item['media_type'] ?? '', $allowed_media_types, true )
+									? $item['media_type'] : 'youtube';
+		$clean['subtitle']         = wp_kses_post( $item['subtitle']          ?? '' );
+		$clean['youtube_url']      = esc_url_raw( $item['youtube_url']        ?? '' );
+		$clean['soundcloud_url']   = esc_url_raw( $item['soundcloud_url']     ?? '' );
+		$clean['soundcloud_thumb'] = esc_url_raw( $item['soundcloud_thumb']   ?? '' );
 	}
 
 	return $clean;
