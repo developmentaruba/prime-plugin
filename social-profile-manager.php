@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
 
 define( 'SPM_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'SPM_URL',     plugin_dir_url( __FILE__ ) );
-define( 'SPM_VERSION', '1.2.1' );
+define( 'SPM_VERSION', '1.2.2' );
 
 // ---------------------------------------------------------------------------
 // GitHub Update Checker (Plugin Update Checker by Yahnis Elsts)
