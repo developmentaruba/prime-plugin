@@ -358,7 +358,7 @@
 				var ct = tabs[ti].card_type;
 				var newItem = ct === 'event'
 					? { image: '', title: '', city: '', date: '', venue: '', btn_text: 'Get Tickets',
-						ticket_options: { location: { enabled: false, items: [] }, payaw: { enabled: false }, rsvp: { enabled: false, whatsapp: '' }, vip: { enabled: false, phone: '' }, link: { enabled: false, url: '', label: '' } } }
+						ticket_options: { location: { enabled: false, items: [] }, payaw: { enabled: false }, rsvp: { enabled: false, whatsapp: '' }, vip: { enabled: false, phone: '' }, link: { enabled: false, url: '', label: '', icon_url: '' } } }
 					: { media_type: 'youtube', image: '', title: '', subtitle: '', youtube_url: '', soundcloud_url: '', soundcloud_thumb: '', btn_text: '', btn_url: '' };
 				if (!tabs[ti].items) tabs[ti].items = [];
 				tabs[ti].items.push(newItem);
@@ -664,7 +664,28 @@
 			]));
 
 			// Custom Link
+			if (!tkOpts.link) tkOpts.link = {};
+			var linkIconThumb = document.createElement('div');
+			linkIconThumb.className = 'spm-tc-card__thumb spm-tc-card__thumb--inline';
+			linkIconThumb.style.marginBottom = '6px';
+			linkIconThumb.innerHTML = (to.link && to.link.icon_url)
+				? '<img src="' + esc(to.link.icon_url) + '" alt="">'
+				: '<span>+ Logo</span>';
+			var mfLinkIcon = null;
+			linkIconThumb.addEventListener('click', function () {
+				if (mfLinkIcon) { mfLinkIcon.open(); return; }
+				mfLinkIcon = wp.media({ title: 'Select Logo', button: { text: 'Use this image' }, multiple: false, library: { type: 'image' } });
+				mfLinkIcon.on('select', function () {
+					var url = mfLinkIcon.state().get('selection').first().toJSON().url;
+					tkOpts.link.icon_url = url;
+					linkIconThumb.innerHTML = '<img src="' + esc(url) + '" alt="">';
+					push();
+				});
+				mfLinkIcon.open();
+			});
+
 			toSection.appendChild(makeTicketOption('link', 'Custom Link', [
+				linkIconThumb,
 				makeField('Label', 'text', (to.link && to.link.label) || '', function(v){
 					if (!tkOpts.link) tkOpts.link = {};
 					tkOpts.link.label = v; push();

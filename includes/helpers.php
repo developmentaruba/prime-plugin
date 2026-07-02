@@ -146,9 +146,10 @@ function spm_sanitize_card_item( array $item, string $card_type ): array {
 				'phone'   => sanitize_text_field( $to['vip']['phone'] ?? '' ),
 			],
 			'link' => [
-				'enabled' => ! empty( $to['link']['enabled'] ),
-				'url'     => esc_url_raw( $to['link']['url'] ?? '' ),
-				'label'   => sanitize_text_field( $to['link']['label'] ?? '' ),
+				'enabled'  => ! empty( $to['link']['enabled'] ),
+				'url'      => esc_url_raw( $to['link']['url']      ?? '' ),
+				'label'    => sanitize_text_field( $to['link']['label']   ?? '' ),
+				'icon_url' => esc_url_raw( $to['link']['icon_url'] ?? '' ),
 			],
 		];
 	} else {
