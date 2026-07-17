@@ -61,6 +61,15 @@ function spm_ajax_soundcloud_oembed() {
 }
 
 // ---------------------------------------------------------------------------
+// Public: fetch a fresh subscribe nonce (avoids stale nonces from page cache)
+// ---------------------------------------------------------------------------
+add_action( 'wp_ajax_spm_get_nonce',        'spm_ajax_get_nonce' );
+add_action( 'wp_ajax_nopriv_spm_get_nonce', 'spm_ajax_get_nonce' );
+function spm_ajax_get_nonce() {
+	wp_send_json_success( [ 'nonce' => wp_create_nonce( 'spm_subscribe_nonce' ) ] );
+}
+
+// ---------------------------------------------------------------------------
 // Public: collect email/phone subscriber
 // ---------------------------------------------------------------------------
 add_action( 'wp_ajax_spm_subscribe',        'spm_ajax_subscribe' );
